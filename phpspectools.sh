@@ -4,13 +4,15 @@ function fixFormattingOnPhpSpecFiles ()
 {
     echo -ne "Fixing SPEC files... \033[36mcleaning\033[0m"\\r
 
-    IS_VISIBILITY_REQUIRED=`bin/php-cs-fixer help fix | grep visibility_required | wc -l`
+    IS_VISIBILITY_REQUIRED=`phpcsfixerBinary help fix | grep visibility_required | wc -l`
 
     if [ $IS_VISIBILITY_REQUIRED -eq 0 ]; then
-        bin/php-cs-fixer fix --fixers=-visibility spec --quiet
+        VISIBILITY_FIXER='--fixers=-visibility'
     else
-        bin/php-cs-fixer fix --rules=-visibility_required spec --quiet
+        VISIBILITY_FIXER='--rules=-visibility_required'
     fi
+
+    phpcsfixerBinary fix $VISIBILITY_FIXER spec --quiet
 
     if [ $? -eq 0 ]; then
         echo -e "Fixing SPEC files... \033[32mclean   \033[0m"
@@ -31,16 +33,29 @@ function getLastEditedSpecFile ()
     fi
 }
 
+function phpspecBinary ()
+{
+    if [ -e bin/phpspec ]; then
+        bin/phpspec "$@"
+    elif [ -e vendor/bin/phpspec ]; then
+        vendor/bin/phpspec "$@"
+    elif [ -e vendor/phpspec/phpspec/bin/phpspec ]; then
+        vendor/phpspec/phpspec/bin/phpspec "$@"
+    else
+        echo -e "\033[31mPhpSpec binary not found!\033[0m"
+    fi
+}
+
 FORMATTING_TOOLS+=('fixFormattingOnPhpSpecFiles')
 
 if [ -n "$ENABLE_ALIAS" ] && [ "$ENABLE_ALIAS" = true ]; then
-    alias psr="bin/phpspec run"
+    alias psr="phpspecBinary run"
 
     function psl ()
     {
         lastEdited=$(getLastEditedSpecFile)
         echo -e "Running phpspec for: \033[36m${lastEdited}\033[0m"
-        bin/phpspec run "${lastEdited}"
+        phpspecBinary run "${lastEdited}"
     }
 
     function psd ()
@@ -56,6 +71,6 @@ if [ -n "$ENABLE_ALIAS" ] && [ "$ENABLE_ALIAS" = true ]; then
             fi
         fi
 
-        bin/phpspec desc "$file"
+        phpspecBinary desc "$file"
     }
 fi
